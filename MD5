@@ -1,0 +1,12 @@
+48eb6578c4936898471efb362b720548 *DESCRIPTION
+240ab16c88c76cc7a6c7865792270be2 *NAMESPACE
+d1347c4fb9b140d4a1bf87c10f27f066 *R/grec-internal.R
+b511e7b5321af9643b558f4b156b7e82 *R/grec-main.R
+b0ee28723b714ae8704f253434142382 *data/colPalette.RData
+370b8b82c5a9021761f5aa83290aeeaf *demo/00Index
+3176cc075dc5e42ae6406c47085cd9da *demo/frontDetect.R
+64c16b5a5585283039012320f2c528fe *inst/extdata/exampleSSTData.RData
+2e34dd7c1532c6ec1c685b51d0a864f1 *man/colPalette.Rd
+ba7f474ffbfef8f4a70dd6d453864c70 *man/extraParams.Rd
+bd3c53338caea3b63a49774c531094f0 *man/frontDetect.Rd
+ece02462608b6d6602d6b5b07dcdaf00 *man/grec-package.Rd
