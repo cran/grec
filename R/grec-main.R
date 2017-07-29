@@ -1,5 +1,6 @@
 #' @title Classification of Spatial Patterns from Environmental Data Through GRadient RECognition
 #' @import imagine
+#' @import raster
 #' @importFrom utils modifyList
 #'
 #' @author Wencheng Lau-Medrano, \email{luis.laum@gmail.com}
@@ -21,14 +22,28 @@ NULL
 #' @references \code{fields} package
 NULL
 
+#' @title Example map of SST from Aqua MODIS
+#' @name exampleSSTData
+#' @description A \code{list} with 3 levels (x, y, z) containing information of an SST map: longitud, latitude and
+#' values (as a \code{matrix}). Info was downloaded from Aqua MODIS, March, 2010.
+#' @aliases exampleSSTData
+#' @docType data
+#' @usage exampleSSTData
+#' @format A \code{list} with 3 levels (x, y, z). \code{x} and \code{y} are numeric vectors, \code{z}
+#' is a numeric \code{matrix}.
+NULL
+
 #' @title Detection of fronts based on gradient recognition
 #'
 #' @description This function takes a environmental map (as a numeric matrix) and allows the user to idenitify
 #' the gradients by using of sobel filters.
 #'
-#' @param envirData Either a list o numerical matrix with environmental info. See 'Details.'
-#' @param thresholds \code{numeric} vector of length 1 or 2 with info of limits of values to consider. See 'Details'.
-#' @param stepByStep \code{logical} indicating whether to get the intermediate matrices (\code{TRUE})
+#' @rdname detectFronts
+#'
+#' @param x Main input of class \code{matrix}, \code{list}, \code{RasterLayer} or \code{array}. See 'Details.'
+#' @param qLimits \code{numeric} vector of length 1 or 2 with info of limits of values to consider. See 'Details'.
+#' @param finalSmooth \code{logical} indicating whether to apply a smooth to final matrix so as to remove noise.
+#' @param intermediate \code{logical} indicating whether to get the intermediate matrices (\code{TRUE})
 #' or just the final one (\code{FALSE}).
 #' @param control A \code{list} of control parameters for filter application See 'Details'.
 #'
@@ -40,19 +55,20 @@ NULL
 #' \item Removing noise signals using a median filter, from \code{imagine} package.
 #' }
 #'
-#' In order to improve the extraction of fronts, the package allows users to change the \code{thresholds}
-#' values. It controls the structures that will be founded by the algorithm and its values will depend on
-#' the range and scale of input matrix; but, as a rule, lower values on \code{threshold} will allow to
-#' found structures of meso and micro scale.
-#'
-#' \code{envirData} could be given as a single numeric matrix containing the values of a
+#' \code{x} could be given as a single numeric matrix containing the values of a
 #' environmental map. Othersiwe it also can be a list with dimensions 'x', 'y' and 'z' specifying
-#' the dimensions of the data as folloews: 'x' will be a numeric vector with the values of longitude,
-#' 'y' will indicate the latitude (numeric vector as well). 'grec' package does not be rigorous in
+#' the dimensions of the data as follows: 'x' will be a numeric vector with the values of longitude,
+#' 'y' will indicate the latitude (numeric vector as well). 'grec' package is not rigorous in
 #' the check of the values given for dimensions, so the user must be carefull with them.
 #'
-#' \code{thresholds} could be given as a single value. If so, the second value must be calculated
-#' as a 5 times the given value. That argument must be applied after the smoothing (step 1).
+#' \code{x} can be specified as a \code{RasterLayer} or \code{array} object. If \code{x} is an \code{array}, it
+#' must have 3 dimensions: lon, lat and time. It is not required to specify the \code{dimnames}. The output will
+#' preserve all the attributes and the order of input.
+#'
+#' \code{qLimits} works after the extraction of grandient matrix. Values of these matrix are vectorized
+#' and the quantiles indicated on \code{qLimits} are taken (that is the reason of the argument name). Then
+#' the values out of the limits are replaced by \code{NA}. \code{qLimits} could be given as a single value.
+#' If so, the second value must be calculated as \code{c(qLimits, qLimits + (1 - qLimits)/2)}.
 #'
 #' The control argument is a list that allows the (advanced) users modify some aspects of filter
 #' application. The parameters of \code{control} are given to functions of \code{\link{imagine}} package.
@@ -60,7 +76,7 @@ NULL
 #' \describe{
 #' \item{\strong{firstSmooth}}{Arguments (\code{radius} and \code{times}) pased to \code{\link{medianFilter}}
 #' function, used for apply the smoothing to the original matrix. It must be given as a named list.}
-#' \item{\strong{sobelStrength}}{Number that multiplies \code{thresholds} vector. It is usefull to highlight
+#' \item{\strong{sobelStrength}}{Number that multiplies \code{qLimits} vector. It is usefull to highlight
 #' the differences.}
 #' \item{\strong{clearNoise}}{Arguments (\code{radius} and \code{times}) pased to \code{\link{medianFilter}}
 #' function, used for apply the median-filter for cleaning noise and getting the output matrix. It must be
@@ -71,25 +87,16 @@ NULL
 #' and SST satellite imagery. Journal of Marine Systems, 78(3), 319-326
 #' (\url{http://dx.doi.org/10.1016/j.jmarsys.2008.11.018}).
 #'
-#' @return Depending on \code{stepByStep} argument, it can be a list or a single numeric matrix.
+#' @return Depending of input class of \code{x}, the output will preserve its class.
+#'
 #' @export
 #'
 #' @examples
 #' load(system.file("extdata", "exampleSSTData.RData", package = "grec"))
-#' out <- frontDetect(envirData = exampleSSTData, threshold = c(10, 500), stepByStep = FALSE)
+#' out <- detectFronts(x = exampleSSTData)
 #' image(out, col = colPalette)
-frontDetect <- function(envirData, thresholds, stepByStep = TRUE, control = list()){
-  # Check and validation of arguments
-  checkedArgs <- list(envirData = envirData, thresholds = thresholds, stepByStep = stepByStep,
-                      control = control)
-  checkedArgs <- checkArgs(grecArgs = checkedArgs, type = as.character(match.call())[1])
-
-  # Apply filters
-  output <- with(checkedArgs,
-                 frontDetect_internal(envirData = envirData, thresholds = thresholds, stepByStep = stepByStep,
-                                      control = control))
-
-  return(output)
+detectFronts <- function(x, qLimits = c(0.9, 0.99), finalSmooth = FALSE, intermediate = FALSE, control = list()){
+  UseMethod(generic = "detectFronts", object = x)
 }
 
 #' @title Gets the extra parameters for \code{grec} functions
@@ -107,7 +114,7 @@ frontDetect <- function(envirData, thresholds, stepByStep = TRUE, control = list
 #' @examples
 #' # For getting all the extra parameters
 #' extraParams()
-extraParams <- function(fx = c("frontDetect")){
+extraParams <- function(fx = c("detectFronts")){
   # Check and validation of arguments
   checkedArgs <- list(fx = fx)
   checkedArgs <- checkArgs(grecArgs = checkedArgs, type = as.character(match.call())[1])

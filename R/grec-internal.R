@@ -1,7 +1,7 @@
 checkArgs <- function(grecArgs, type){
 
   output <- switch(type,
-                   frontDetect = checkArgs_frontDetect(grecArgs),
+                   detectFronts.default = checkArgs_detectFronts(grecArgs),
                    extraParams = checkArgs_extraParams(grecArgs),
                    "Invalid value for 'type'.")
 
@@ -9,66 +9,89 @@ checkArgs <- function(grecArgs, type){
 }
 
 
-checkArgs_frontDetect <- function(allArgs){
+checkArgs_detectFronts <- function(allArgs){
 
-  envirData <- allArgs$envirData
-  thresholds <- allArgs$thresholds
-  stepByStep <- allArgs$stepByStep
+  x <- allArgs$x
+  qLimits <- sort(unique(allArgs$qLimits))
+  finalSmooth <- allArgs$finalSmooth
+  intermediate <- allArgs$intermediate
   control <- allArgs$control
 
-  msg1 <- "If 'envirData' is a list, it must contain info for environmental map. See help(frontDetect)."
-  msg2 <- "If 'envirData' is a matrix, it must be a numerical matrix with environmental data. See help(frontDetect)."
-  msg3 <- "'envirData' must a matrix or list containing numerical values of environmental map. See help(frontDetect)."
+  msg1 <- "'x' must be a XYZ list containing environmental map info. See help(detectFronts)."
+  msg2 <- "'x' must be a numeric matrix with environmental data. See help(detectFronts)."
+  msg3 <- "'x' must be a numeric array  with environmental data. See help(detectFronts)."
+  msg4 <- "'x' must a matrix, list, RasterLayer or array with environmental data See help(detectFronts)."
 
-  if(is.list(envirData)){
-
-    # Check if envirData is a list with 'x', 'y', 'z' dimensions, where z is a numeric matrix
-    index <- (length(envirData) == 3 && all(is.element(c("x", "y", "z"), letters)) &&
-                is.matrix(envirData$z) && is.numeric(envirData$z))
+  if(is.list(x)){
+    # Check if x is a list with 'x', 'y', 'z' dimensions, where z is a numeric matrix
+    index <- (length(x) == 3 && all(is.element(c("x", "y", "z"), letters)) &&
+                is.matrix(x$z) && is.numeric(x$z))
     if(!index){
       stop(msg1)
     }
-  }else if(is.matrix(envirData)){
-
-    # Check if envirData is a valid numerical matrix
-    index <- is.matrix(envirData$z) && is.numeric(envirData$z)
+  }else if(is.matrix(x)){
+    # Check if x is a valid numerical matrix
+    index <- is.matrix(x) && is.numeric(x)
     if(!index){
       stop(msg2)
     }
+
+    allArgs$x <- list(x = seq(nrow(x)),
+                      y = seq(ncol(x)),
+                      z = x)
+  }else if(is.array(x)){
+    # Check if x is a valid numerical array
+    if(!is.numeric(x) || length(dim(x)) > 3){
+      stop(msg3)
+    }
+  }else if(!class(x) != "RasterLayer"){
+    stop(msg4)
+  }
+
+  msg1 <- "Invalid value for 'intermediate', it will take its default value (TRUE)."
+  if(!is.logical(intermediate)){
+    intermediate <- TRUE
+    warning(msg1)
+  }
+
+  # Check if qLimits is a numeric vector of length 1 or 2
+  msg1 <- "'qLimits' must be a numeric vector with values between 0 and 1."
+  if(!is.numeric(qLimits)){
+    stop(msg1)
+  }
+
+  msg1 <- "'qLimits' must be a numeric vector of length 1 or 2 and values between 0 and 1. See help(detectFronts)."
+  if(any(qLimits < 0 | qLimits > 1)){
+    stop(msg1)
+  }
+
+  if(length(qLimits) == 1){
+    if(isTRUE(all.equal(qLimits, 1))){
+      allArgs$qLimits <- c(qLimits, qLimits)
+    }else{
+      allArgs$qLimits <- c(qLimits, qLimits + (1 - qLimits)/2)
+    }
+  }else if(length(qLimits) == 2){
+    allArgs$qLimits <- sort(qLimits)
   }else{
-    stop(msg3)
+    stop(msg1)
   }
 
-  msg4 <- "Invalid value for 'stepByStep', it will take its default value (TRUE)."
-  if(!is.logical(stepByStep)){
-    stepByStep <- TRUE
-    warning(msg4)
-  }
-
-  # Check if thresholds is a numeric vector of length 1 or 2
-  msg5 <- "'thresholds' must be a numeric vector."
-  if(!is.numeric(thresholds)){
-    stop(msg5)
-  }
-
-  msg6 <- "'thresholds' must be a numeric vector of length 1 or 2. See help(frontDetect)."
-  if(length(thresholds) == 1){
-    allArgs$thresholds <- c(thresholds, 5*thresholds)
-  }else if(length(thresholds) == 2){
-    allArgs$thresholds <- sort(thresholds)
-  }else{
-    stop(msg6)
-  }
-
-  msg7 <- "'control' must be a named list with arguments for imagine functions. See help(frontDetect)."
+  msg1 <- "'control' must be a named list with arguments for imagine functions. See help(detectFronts)."
   if(!is.list(control)){
-    stop(msg7)
+    stop(msg1)
   }else{
     # Define extra parameters for filter
-    control_default <- extraParams(fx = "frontDetect")
+    control_default <- extraParams(fx = "detectFronts")
 
     # Merge two list of control params
-    allArgs$control <- modifyList(control_default$frontDetect, control)
+    allArgs$control <- modifyList(control_default$detectFronts, control)
+  }
+
+  msg1 <- "Invalid value for 'finalSmooth', it will take its default value (FALSE)."
+  if(!is.logical(finalSmooth)){
+    intermediate <- FALSE
+    warning(msg1)
   }
 
   return(allArgs)
@@ -78,7 +101,7 @@ checkArgs_extraParams <- function(allArgs){
   fx <- allArgs$fx
 
   msg1 <- "'fx' must be a character vector with a valid name of a grec function. See help(extraParams)."
-  validFunctions <- c("frontDetect")
+  validFunctions <- c("detectFronts")
   index <- is.vector(fx) && is.character(fx) && all(is.element(fx, validFunctions))
   if(!index){
     stop(msg1)
@@ -87,29 +110,45 @@ checkArgs_extraParams <- function(allArgs){
   return(allArgs)
 }
 
-frontDetect_internal <- function(envirData, thresholds, stepByStep, control){
+#' @rdname detectFronts
+#' @export
+detectFronts.default <- function(x, qLimits = c(0.9, 0.99), finalSmooth = FALSE, intermediate = FALSE, control = list()){
+  # Check and validation of arguments
+  checkedArgs <- list(x = x, qLimits = qLimits, finalSmooth = finalSmooth, intermediate = intermediate,
+                      control = control)
+  checkedArgs <- checkArgs(grecArgs = checkedArgs, type = as.character(match.call())[1])
+
+  # Apply filters
+  output <- with(checkedArgs,
+                 detectFronts_internal(x = x, qLimits = qLimits, finalSmooth = finalSmooth,
+                                       intermediate = intermediate, control = control))
+
+  return(output)
+}
+
+detectFronts_internal <- function(x, qLimits, finalSmooth, intermediate, control){
 
   # Create empty list for outputs
-  if(stepByStep){
+  if(intermediate){
     output <- list()
-    output[[1]] <- list(x = envirData$x,
-                        y = envirData$y,
-                        z = envirData$z)
+    output[[1]] <- list(x = x$x,
+                        y = x$y,
+                        z = x$z)
   }
 
   # Make a first smooth
-  preMatrix <- medianFilter(dataMatrix = envirData$z,
+  preMatrix <- medianFilter(dataMatrix = x$z,
                             radius = control$firstSmooth$radius,
                             times = control$firstSmooth$times)
 
-  if(stepByStep){
-    output[[2]] <- list(x = envirData$x,
-                        y = envirData$y,
+  if(intermediate){
+    output[[2]] <- list(x = x$x,
+                        y = x$y,
                         z = preMatrix)
   }
 
   # Define sobel kernel values
-  sobelKernel <- control$sobelStrength*c(-1, -2, -1, 0, 0, 0, 1, 2, 1)
+  sobelKernel <- control$sobelStrength*control$kernelValues
 
   # Define sobel kernels
   sobelH <- matrix(data = sobelKernel, nrow = 3, byrow = TRUE)
@@ -119,38 +158,43 @@ frontDetect_internal <- function(envirData, thresholds, stepByStep, control){
   filteredH <- convolution2D(dataMatrix = preMatrix, kernel = sobelH, noNA = TRUE)
   filteredV <- convolution2D(dataMatrix = preMatrix, kernel = sobelV, noNA = TRUE)
 
-  if(stepByStep){
-    output[[3]] <- list(x = envirData$x,
-                        y = envirData$y,
+  if(intermediate){
+    output[[3]] <- list(x = x$x,
+                        y = x$y,
                         z = filteredH)
-    output[[4]] <- list(x = envirData$x,
-                        y = envirData$y,
+    output[[4]] <- list(x = x$x,
+                        y = x$y,
                         z = filteredV)
   }
 
   # Calculate gradient
   newSobel <- sqrt(filteredH^2 + filteredV^2)
-  newSobel[newSobel < thresholds[1] | newSobel > thresholds[2]] <- NA
+  qLimits <- quantile(x = as.numeric(newSobel), probs = qLimits, na.rm = TRUE)
+  newSobel[newSobel < qLimits[1] | newSobel > qLimits[2]] <- NA
 
-  if(stepByStep){
-    output[[5]] <- list(x = envirData$x,
-                        y = envirData$y,
+  if(intermediate){
+    output[[5]] <- list(x = x$x,
+                        y = x$y,
                         z = newSobel)
   }
 
   # Clear noisy signals
-  newSobel <- medianFilter(dataMatrix = newSobel,
-                           radius = control$clearNoise$radius,
-                           times = control$clearNoise$times)
+  if(isTRUE(finalSmooth)){
+    newSobel <- medianFilter(dataMatrix = newSobel,
+                             radius = control$clearNoise$radius,
+                             times = control$clearNoise$times)
 
-  if(stepByStep){
-    output[[6]] <- list(x = envirData$x,
-                        y = envirData$y,
+    output[[6]] <- list(x = x$x,
+                        y = x$y,
                         z = newSobel)
-    names(output) <- c("original", "first_smooth", "sobel_H", "sobel_V", "gradient", "noise_cleared")
+  }
+
+  if(intermediate){
+    names(output) <- c("original", "first_smooth", "sobel_H", "sobel_V", "gradient",
+                       if(isTRUE(finalSmooth)) "noise_cleared" else NULL)
   }else{
-    output <- list(x = envirData$x,
-                   y = envirData$y,
+    output <- list(x = x$x,
+                   y = x$y,
                    z = newSobel)
   }
 
@@ -162,8 +206,9 @@ extraParams_internal <- function(fx){
 
   for(i in seq_along(fx)){
     output[[i]] <- switch(fx[i],
-                          frontDetect = list(firstSmooth = list(radius = 5,
+                          detectFronts = list(firstSmooth = list(radius = 5,
                                                                 times = 10),
+                                             kernelValues = c(-1, -2, -1, 0, 0, 0, 1, 2, 1),
                                              sobelStrength = 10,
                                              clearNoise = list(radius = 5,
                                                                times = 1)),
