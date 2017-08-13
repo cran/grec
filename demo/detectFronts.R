@@ -2,11 +2,14 @@
 # Detect fronts --------------------------------------------------------------------------
 
 # Load example data
-load(system.file("extdata", "exampleSSTData.RData", package = "grec"))
+data(sst)
+exampleSSTData <- list(x = sst$longitude,
+                       y = sst$latitude,
+                       z = sst$sst[,,1])
 
 # Apply detectFronts function
 out <- detectFronts(x = exampleSSTData, intermediate = TRUE, finalSmooth = TRUE)
-
+str(out)
 
 # Make plots -----------------------------------------------------------------------------
 

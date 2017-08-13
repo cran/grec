@@ -1,4 +1,4 @@
-#' @title Classification of Spatial Patterns from Environmental Data Through GRadient RECognition
+#' @title GRadient-Based RECognition of Spatial Patterns in Environmental Data
 #' @import imagine
 #' @import raster
 #' @importFrom utils modifyList
@@ -22,15 +22,34 @@ NULL
 #' @references \code{fields} package
 NULL
 
-#' @title Example map of SST from Aqua MODIS
-#' @name exampleSSTData
-#' @description A \code{list} with 3 levels (x, y, z) containing information of an SST map: longitud, latitude and
-#' values (as a \code{matrix}). Info was downloaded from Aqua MODIS, March, 2010.
-#' @aliases exampleSSTData
+#' @title Sea Surface Temperature Data
+#' @name sst
+#' @description SST maps downloaded from ERDDAP for running examples with \code{grec} functions.
+#' @aliases sst
 #' @docType data
-#' @usage exampleSSTData
-#' @format A \code{list} with 3 levels (x, y, z). \code{x} and \code{y} are numeric vectors, \code{z}
-#' is a numeric \code{matrix}.
+#' @usage sst
+#' @format A \code{list} with SST information from February to April of Aqua MODIS source.
+#' @references ERDDAP website: \url{https://coastwatch.pfeg.noaa.gov/erddap/index.html}
+NULL
+
+#' @title Sea Surface Chlorophyll Data
+#' @name chl
+#' @description Surface chlorophyll maps downloaded from ERDDAP for running examples with \code{grec} functions.
+#' @aliases chl
+#' @docType data
+#' @usage chl
+#' @format A \code{list} with chlorophyll information from February to April of Aqua MODIS source.
+#' @references ERDDAP website: \url{https://coastwatch.pfeg.noaa.gov/erddap/index.html}
+NULL
+
+#' @title Bathymetric data
+#' @name bathy
+#' @description Bathymetric maps downloaded from ERDDAP for running examples with \code{grec} functions.
+#' @aliases bathy
+#' @docType data
+#' @usage bathy
+#' @format A \code{list} with bathymetric information from ETOPO source.
+#' @references ERDDAP website: \url{https://coastwatch.pfeg.noaa.gov/erddap/index.html}
 NULL
 
 #' @title Detection of fronts based on gradient recognition
@@ -92,7 +111,13 @@ NULL
 #' @export
 #'
 #' @examples
-#' load(system.file("extdata", "exampleSSTData.RData", package = "grec"))
+#' # Build an example data
+#' # Load example data
+#' data(sst)
+#' exampleSSTData <- list(x = sst$longitude,
+#'                        y = sst$latitude,
+#'                        z = sst$sst[,,1])
+#' # Simple application
 #' out <- detectFronts(x = exampleSSTData)
 #' image(out, col = colPalette)
 detectFronts <- function(x, qLimits = c(0.9, 0.99), finalSmooth = FALSE, intermediate = FALSE, control = list()){

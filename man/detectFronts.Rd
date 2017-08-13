@@ -77,7 +77,13 @@ given as a named list.}
 }
 }
 \examples{
-load(system.file("extdata", "exampleSSTData.RData", package = "grec"))
+# Build an example data
+# Load example data
+data(sst)
+exampleSSTData <- list(x = sst$longitude,
+                       y = sst$latitude,
+                       z = sst$sst[,,1])
+# Simple application
 out <- detectFronts(x = exampleSSTData)
 image(out, col = colPalette)
 }
