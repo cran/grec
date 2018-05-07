@@ -1,4 +1,4 @@
-#' @title GRadient-Based RECognition of Spatial Patterns in Environmental Data
+#' @title GRadient-based RECognition of spatial patterns in environmental data
 #' @import imagine
 #' @import raster
 #' @importFrom utils modifyList
@@ -18,7 +18,7 @@ NULL
 #' @aliases colPalette
 #' @docType data
 #' @usage colPalette
-#' @format A vector of 2000 colors in RBG format.
+#' @format A vector of 2000 colors in RGB format.
 #' @references \code{fields} package
 NULL
 
@@ -52,61 +52,51 @@ NULL
 #' @references ERDDAP website: \url{https://coastwatch.pfeg.noaa.gov/erddap/index.html}
 NULL
 
-#' @title Detection of fronts based on gradient recognition
+#' @title Apply gradient-based methodologies to environmental data
 #'
-#' @description This function takes a environmental map (as a numeric matrix) and allows the user to idenitify
-#' the gradients by using of sobel filters.
+#' @description This function takes a environmental map (as a numeric \code{matrix}, \code{array}, XYZ\code{list}
+#' or \code{RasterLayer}) and allows the users to apply methodologies based on gradient-searching.
 #'
 #' @rdname detectFronts
 #'
-#' @param x Main input of class \code{matrix}, \code{list}, \code{RasterLayer} or \code{array}. See 'Details.'
-#' @param qLimits \code{numeric} vector of length 1 or 2 with info of limits of values to consider. See 'Details'.
-#' @param finalSmooth \code{logical} indicating whether to apply a smooth to final matrix so as to remove noise.
+#' @param x Main input of class \code{matrix}, \code{array}, XYZ \code{list} or \code{RasterLayer}. See 'Details.'
+#' @param method \code{character} string indicating the method that will be used. See 'Details'.
 #' @param intermediate \code{logical} indicating whether to get the intermediate matrices (\code{TRUE})
 #' or just the final one (\code{FALSE}).
-#' @param control A \code{list} of control parameters for filter application See 'Details'.
+#' @param ... Extra arguments that will depend on the selected method. See Details.
 #'
-#' @details Inspired by the algorithm described on Belkin & O'Reilly (2009), this function performs 4 steps:
+#' @details Version 1.2.x performs one method: Belkin & O'Reilly (2009), following 3 steps:
 #' \enumerate{
-#' \item Smoothing of the original data by a median filter application.
-#' \item Application of sobel filters horizontally (sobelH) and vertically (sobelV).
-#' \item Extract gradients, using the formula \eqn{sqrt(sobelH^2 + sobelV^2)}.
-#' \item Removing noise signals using a median filter, from \code{imagine} package.
+#' \item Apply a Contextual Median Filter (CMF) for smoothing the original data.
+#' \item Apply a convolution with sobel kernels horizontally (sobelH) and vertically (sobelV).
+#' \item Extract gradients using the formula \eqn{sqrt(sobelH^2 + sobelV^2)}.
 #' }
 #'
-#' \code{x} could be given as a single numeric matrix containing the values of a
-#' environmental map. Othersiwe it also can be a list with dimensions 'x', 'y' and 'z' specifying
-#' the dimensions of the data as follows: 'x' will be a numeric vector with the values of longitude,
-#' 'y' will indicate the latitude (numeric vector as well). 'grec' package is not rigorous in
-#' the check of the values given for dimensions, so the user must be carefull with them.
+#' \code{x} could be given as a single numeric \code{matrix} from an environmental map. Othersiwe it also can be set
+#' as a three-dimension XYZ \code{list}: 'x' (a vector of longitudes), 'y' (vector of latitudes) and
+#' 'z' as a matrix of dimensions \code{length(x$x)}x\code{xlength(x$y)}. You can also specify \code{x} as a
+#' \code{RasterLayer} or \code{array} object. If \code{x} is an \code{array}, it must have 3 dimensions: lon, lat
+#' and time. It is not required to specify the \code{dimnames}. The output will preserve all the attributes of input.
 #'
-#' \code{x} can be specified as a \code{RasterLayer} or \code{array} object. If \code{x} is an \code{array}, it
-#' must have 3 dimensions: lon, lat and time. It is not required to specify the \code{dimnames}. The output will
-#' preserve all the attributes and the order of input.
+#' Users can change the methodology used for the calculation of gradients by \code{method}. By default it will be
+#' the Belkin & O'Reilly (2009) at v1.2.x.
 #'
-#' \code{qLimits} works after the extraction of grandient matrix. Values of these matrix are vectorized
-#' and the quantiles indicated on \code{qLimits} are taken (that is the reason of the argument name). Then
-#' the values out of the limits are replaced by \code{NA}. \code{qLimits} could be given as a single value.
-#' If so, the second value must be calculated as \code{c(qLimits, qLimits + (1 - qLimits)/2)}.
+#' \code{...} allows the (advanced) users to modify some aspects of filter application. Depending on the selected methodology,
+#' the available arguments will change. So, Belkin & O'Reilly (2009) brings out the following arguments to change:
 #'
-#' The control argument is a list that allows the (advanced) users modify some aspects of filter
-#' application. The parameters of \code{control} are given to functions of \code{\link{imagine}} package.
-#' It must be a \code{list} including the following named objects:
 #' \describe{
-#' \item{\strong{firstSmooth}}{Arguments (\code{radius} and \code{times}) pased to \code{\link{medianFilter}}
-#' function, used for apply the smoothing to the original matrix. It must be given as a named list.}
-#' \item{\strong{sobelStrength}}{Number that multiplies \code{qLimits} vector. It is usefull to highlight
-#' the differences.}
-#' \item{\strong{clearNoise}}{Arguments (\code{radius} and \code{times}) pased to \code{\link{medianFilter}}
-#' function, used for apply the median-filter for cleaning noise and getting the output matrix. It must be
-#' given as a named list.}
+#' \item{\strong{inner_radius}}{\code{numeric}. Size (in pixels) of window for the first stage on CMF.}
+#' \item{\strong{outer_radius}}{\code{numeric}. Size (in pixels) of window for the second stage on CMF.}
+#' \item{\strong{times}}{\code{numeric}. How many times do you want to apply the CMF?}
+#' \item{\strong{kernelValues}}{\code{numeric}. Vector with which are going to be used in convolution to identify Vertical
+#' and Horizontal gradients. By default, it will be the typical Sobel kernels.}
 #' }
 #'
 #' @references Belkin, I. M., & O'Reilly, J. E. (2009). An algorithm for oceanic front detection in chlorophyll
 #' and SST satellite imagery. Journal of Marine Systems, 78(3), 319-326
 #' (\url{http://dx.doi.org/10.1016/j.jmarsys.2008.11.018}).
 #'
-#' @return Depending of input class of \code{x}, the output will preserve its class.
+#' @return The output will preserve the input class (\code{matrix}, \code{array}, \code{list} or \code{RasterLayer}).
 #'
 #' @export
 #'
@@ -117,34 +107,13 @@ NULL
 #' exampleSSTData <- list(x = sst$longitude,
 #'                        y = sst$latitude,
 #'                        z = sst$sst[,,1])
-#' # Simple application
+#' # Simple application (over a XYZ list)
 #' out <- detectFronts(x = exampleSSTData)
 #' image(out, col = colPalette)
-detectFronts <- function(x, qLimits = c(0.9, 0.99), finalSmooth = FALSE, intermediate = FALSE, control = list()){
-  UseMethod(generic = "detectFronts", object = x)
-}
-
-#' @title Gets the extra parameters for \code{grec} functions
-#'
-#' @description Show as a list the extra parameters for main \code{grec} function.
-#'
-#' @param fx \code{character} vector indicating the values that will be returned.
-#'
-#' @details This function is usefull for advance users that require to modify intermediate steps in terms of
-#' filter application.
-#'
-#' @return A \code{list} with the extra parameters used by default.
-#' @export
-#'
-#' @examples
-#' # For getting all the extra parameters
-#' extraParams()
-extraParams <- function(fx = c("detectFronts")){
+detectFronts <- function(x, method = "BelkinOReilly2009", intermediate = FALSE, ...){
   # Check and validation of arguments
-  checkedArgs <- list(fx = fx)
-  checkedArgs <- checkArgs(grecArgs = checkedArgs, type = as.character(match.call())[1])
+  checkedArgs <- list(x = x, method = method, intermediate = intermediate, ...)
+  checkArgs(allArgs = checkedArgs, type = class(x))
 
-  output <- with(checkedArgs, extraParams_internal(fx = fx))
-
-  return(output)
+  UseMethod(generic = "detectFronts", object = x)
 }
