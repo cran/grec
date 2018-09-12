@@ -32,6 +32,16 @@ NULL
 #' @references ERDDAP website: \url{https://coastwatch.pfeg.noaa.gov/erddap/index.html}
 NULL
 
+#' @title Sea Surface Temperature Data for NW USA
+#' @name NW_USA_SST
+#' @description SST RasterLayer map for running examples with \code{grec} functions.
+#' @aliases NW_USA_SST
+#' @docType data
+#' @usage NW_USA_SST
+#' @format A \code{RasterLayer} object with SST information from Aqua MODIS source.
+#' @references ERDDAP website: \url{https://coastwatch.pfeg.noaa.gov/erddap/index.html}
+NULL
+
 #' @title Sea Surface Chlorophyll Data
 #' @name chl
 #' @description Surface chlorophyll maps downloaded from ERDDAP for running examples with \code{grec} functions.
