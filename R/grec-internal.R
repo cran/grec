@@ -65,7 +65,7 @@ checkArgs <- function(allArgs, type){
   intermediate  <- allArgs$intermediate
 
   # Check name of method
-  methodList <- c("BelkinOReilly2009")
+  methodList <- c("BelkinOReilly2009", "median_filter")
   if(!is.element(method, methodList)){
     stop("No valid method for gradient calculation.")
   }
@@ -93,74 +93,11 @@ detectFronts.default <- function(x, method = "BelkinOReilly2009", intermediate =
   output <- switch(method,
                    BelkinOReilly2009 = detectFronts_BelkinOReilly2009(x = x,
                                                                       intermediate = intermediate,
-                                                                      ...))
+                                                                      ...),
+                   median_filter = detectFronts_MF(x = x, intermediate = intermediate, ...))
 
   return(output)
 }
-
-# detectFronts_LauMedrano <- function(x, qLimits, finalSmooth, intermediate, control){
-#
-#   if(is.null(qLimits)){
-#     qLimits <- c(0.9, 0.99)
-#   }
-#
-#   # Create empty list for outputs
-#   if(intermediate){
-#     output <- array(data = NA, dim = c(dim(x),  ifelse(isTRUE(finalSmooth), 6, 5)))
-#     output[,,1] <- x
-#   }
-#
-#   # Make a first smooth
-#   preMatrix <- medianFilter(X = x,
-#                             radius = control$firstSmooth$radius,
-#                             times = control$firstSmooth$times)
-#
-#   if(intermediate){
-#     output[,,2] <- preMatrix
-#   }
-#
-#   # Define sobel kernel values
-#   sobelKernel <- control$sobelStrength*control$kernelValues
-#
-#   # Define sobel kernels
-#   sobelH <- matrix(data = sobelKernel, nrow = 3, byrow = TRUE)
-#   sobelV <- matrix(data = sobelKernel, nrow = 3, byrow = FALSE)
-#
-#   # Apply sobel filters (horizontal and vertical)
-#   filteredH <- convolution2D(X = preMatrix, kernel = sobelH, noNA = TRUE)
-#   filteredV <- convolution2D(X = preMatrix, kernel = sobelV, noNA = TRUE)
-#
-#   if(intermediate){
-#     output[,,3] <- filteredH
-#     output[,,4] <- filteredV
-#   }
-#
-#   # Calculate gradient
-#   newSobel <- sqrt(filteredH^2 + filteredV^2)
-#   qLimits <- quantile(x = as.numeric(newSobel), probs = qLimits, na.rm = TRUE)
-#   newSobel[newSobel < qLimits[1] | newSobel > qLimits[2]] <- NA
-#
-#   if(intermediate){
-#     output[,,5] <- newSobel
-#   }
-#
-#   # Clear noisy signals
-#   if(isTRUE(finalSmooth)){
-#     clearNoise <- medianFilter(X = newSobel,
-#                                radius = control$clearNoise$radius,
-#                                times = control$clearNoise$times)
-#
-#     if(intermediate){
-#       output[,,6] <- clearNoise
-#     }else{
-#       output <- clearNoise
-#     }
-#   }else if(!intermediate){
-#     output <- newSobel
-#   }
-#
-#   return(output)
-# }
 
 detectFronts_BelkinOReilly2009 <- function(x, finalSmooth, intermediate, ...){
   # Create empty list for outputs
@@ -169,15 +106,12 @@ detectFronts_BelkinOReilly2009 <- function(x, finalSmooth, intermediate, ...){
     output[,,1] <- x
   }
 
-  control_default <- list(inner_radius = 3,
-                          outer_radius = 5,
-                          times = 1,
+  control_default <- list(times = 1,
                           kernelValues = c(-1, -2, -1, 0, 0, 0, 1, 2, 1))
   extraParams <- modifyList(x = control_default, val = list(...))
 
   # Apply a smooth (Contextual Median Filter)
-  preMatrix <- contextualMF(X = x, inner_radius = extraParams$inner_radius,
-                            outer_radius = extraParams$outer_radius, times = extraParams$times)
+  preMatrix <- contextualMF(X = x, times = extraParams$times)
 
   if(intermediate){
     output[,,2] <- preMatrix
@@ -191,13 +125,60 @@ detectFronts_BelkinOReilly2009 <- function(x, finalSmooth, intermediate, ...){
   sobelV <- matrix(data = sobelKernel, nrow = 3, byrow = FALSE)
 
   # Apply sobel filters (horizontal and verticaly)
-  filteredH <- convolution2D(X = preMatrix, kernel = sobelH, noNA = TRUE)
-  filteredV <- convolution2D(X = preMatrix, kernel = sobelV, noNA = TRUE)
+  filteredH <- convolution2D(X = preMatrix, kernel = sobelH)
+  filteredV <- convolution2D(X = preMatrix, kernel = sobelV)
 
-  # Normalize values
-  normfactor <- sum(abs(sobelKernel), na.rm = TRUE)
-  filteredH <- filteredH/normfactor
-  filteredV <- filteredV/normfactor
+  if(intermediate){
+    output[,,3] <- filteredH
+    output[,,4] <- filteredV
+  }
+
+  # Calculate gradient
+  newSobel <- sqrt(filteredH^2 + filteredV^2)
+
+  if(intermediate){
+    output[,,5] <- newSobel
+  }
+
+  # Return output
+  if(intermediate){
+    return(output)
+  }else{
+    dimnames(newSobel) <- dimnames(x)
+
+    return(newSobel)
+  }
+}
+
+detectFronts_MF <- function(x, finalSmooth, intermediate, ...){
+  # Create empty list for outputs
+  if(intermediate){
+    output <- array(data = NA, dim = c(dim(x), 5))
+    output[,,1] <- x
+  }
+
+  control_default <- list(radius = 3,
+                          times = 1,
+                          kernelValues = c(-1, -2, -1, 0, 0, 0, 1, 2, 1))
+  extraParams <- modifyList(x = control_default, val = list(...))
+
+  # Apply a smooth (Contextual Median Filter)
+  preMatrix <- medianFilter(X = x, radius = extraParams$radius, times = extraParams$times)
+
+  if(intermediate){
+    output[,,2] <- preMatrix
+  }
+
+  # Define sobel kernel values
+  sobelKernel <- extraParams$kernelValues
+
+  # Define sobel kernels
+  sobelH <- matrix(data = sobelKernel, nrow = 3, byrow = TRUE)
+  sobelV <- matrix(data = sobelKernel, nrow = 3, byrow = FALSE)
+
+  # Apply sobel filters (horizontal and verticaly)
+  filteredH <- convolution2D(X = preMatrix, kernel = sobelH)
+  filteredV <- convolution2D(X = preMatrix, kernel = sobelV)
 
   if(intermediate){
     output[,,3] <- filteredH
