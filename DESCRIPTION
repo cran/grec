@@ -1,9 +1,9 @@
 Package: grec
 Type: Package
-Title: GRadient-Based RECognition of Spatial Patterns in Environmental
+Title: Gradient-Based Recognition of Spatial Patterns in Environmental
         Data
-Version: 1.3.0
-Date: 2019-07-15
+Version: 1.3.2
+Date: 2020-01-13
 URL: https://github.com/LuisLauM/grec
 BugReports: https://github.com/LuisLauM/grec/issues
 Authors@R: c(person("Wencheng", "Lau-Medrano", role = c("aut", "cre"), email = "luis.laum@gmail.com"))
@@ -13,10 +13,10 @@ License: GPL (>= 2)
 Depends: R (>= 3.2.0), imagine (>= 1.5.2), raster
 Imports: utils
 LazyData: true
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2019-07-15 14:03:07 UTC; Wencheng
+Packaged: 2020-02-04 16:38:16 UTC; Wencheng
 Author: Wencheng Lau-Medrano [aut, cre]
 Repository: CRAN
-Date/Publication: 2019-07-15 15:50:03 UTC
+Date/Publication: 2020-02-04 17:20:02 UTC
