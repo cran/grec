@@ -14,6 +14,6 @@
 #' @importFrom terra rast values nlyr crs ext varnames origin 'values<-'
 #' @importFrom utils modifyList
 #' @importMethodsFrom raster "["
-#' @importMethodsFrom terra as.matrix varnames<- origin<- ext<-
+#' @importMethodsFrom terra as.array varnames<- origin<- ext<-
 ## usethis namespace: end
 NULL

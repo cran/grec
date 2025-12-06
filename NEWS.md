@@ -1,3 +1,6 @@
+## 1.6.3
+  - Bug correction on `SpatRaster` methods.
+
 ## 1.6.2
   - Improvements on `getGradients` method for `SpatRaster` class inputs.
 
