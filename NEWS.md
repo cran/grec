@@ -1,6 +1,7 @@
-## 1.6.3
-  - Bug correction on `SpatRaster` methods.
-
+### 1.6.3
+  - Correction on `getGradients` method for `SpatRaster` class inputs.
+  - Now grec works with [cli](https://cli.r-lib.org/) messages.
+  
 ## 1.6.2
   - Improvements on `getGradients` method for `SpatRaster` class inputs.
 
